@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { head } from '@vercel/blob'
+import { headers } from 'next/headers'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -8,15 +9,12 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
-  let imageUrl = ''
 
-  try {
-    // Look up the blob by its pathname — OIDC auth, no token needed
-    const blob = await head(`frames/${id}.png`)
-    imageUrl = blob.url
-  } catch {
-    // Blob not found or not accessible
-  }
+  // Construct absolute URL for OG image (same-domain route)
+  const headersList = await headers()
+  const host = headersList.get('host') || 'localhost:3000'
+  const proto = headersList.get('x-forwarded-proto') || 'https'
+  const ogImageUrl = `${proto}://${host}/share/${id}/og`
 
   return {
     title: 'Builder ID — Hacker House Goa 2026',
@@ -27,23 +25,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description:
         'I just created my HH Goa 2026 Builder ID. Create yours! #FrameInGoa',
       type: 'website',
-      ...(imageUrl && {
-        images: [
-          {
-            url: imageUrl,
-            width: 1080,
-            height: 1080,
-            alt: 'HH Goa 2026 Builder ID',
-          },
-        ],
-      }),
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: 'HH Goa 2026 Builder ID',
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: 'Hacker House Goa 2026',
       description:
         'I just created my HH Goa 2026 Builder ID. Create yours! #FrameInGoa',
-      ...(imageUrl && { images: [imageUrl] }),
+      images: [ogImageUrl],
     },
   }
 }

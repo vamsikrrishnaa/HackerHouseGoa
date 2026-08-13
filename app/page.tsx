@@ -557,6 +557,9 @@ export default function Page() {
         ? 'Just got #FrameInGoa 🌴\nHacker House Goa \'26\nBuild. Ship. Repeat.'
         : 'Just framed up for #FrameInGoa 🌴\nHacker House Goa \'26'
 
+    // Open window IMMEDIATELY to preserve user gesture (prevents popup blocker)
+    const xWindow = window.open('about:blank', '_blank')
+
     try {
       // Canvas → PNG blob
       const blob = await new Promise<Blob | null>((r) =>
@@ -586,25 +589,21 @@ export default function Page() {
         // Blob upload not available (local dev) — that's fine, image was already downloaded
       }
 
-      // Step 3: Open X composer
+      // Step 3: Navigate the already-opened window to X composer
       const params = new URLSearchParams({ text: caption })
       if (shareUrl) params.set('url', shareUrl)
-      window.open(
-        `https://x.com/intent/tweet?${params.toString()}`,
-        '_blank',
-        'noopener,noreferrer'
-      )
+      if (xWindow) {
+        xWindow.location.href = `https://x.com/intent/tweet?${params.toString()}`
+      }
 
       // Step 4: Show notice
       setShareNotice(true)
       setTimeout(() => setShareNotice(false), 6000)
     } catch (err) {
       console.error('Share error:', err)
-      window.open(
-        `https://x.com/intent/tweet?text=${encodeURIComponent(caption)}`,
-        '_blank',
-        'noopener,noreferrer'
-      )
+      if (xWindow) {
+        xWindow.location.href = `https://x.com/intent/tweet?text=${encodeURIComponent(caption)}`
+      }
     } finally {
       setSharing(false)
     }
