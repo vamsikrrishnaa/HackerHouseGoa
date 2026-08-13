@@ -1,13 +1,22 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { head } from '@vercel/blob'
 
 type Props = {
-  searchParams: Promise<{ v?: string }>
+  params: Promise<{ id: string }>
 }
 
-export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const params = await searchParams
-  const imageUrl = params?.v || ''
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params
+  let imageUrl = ''
+
+  try {
+    // Look up the blob by its pathname — OIDC auth, no token needed
+    const blob = await head(`frames/${id}.png`)
+    imageUrl = blob.url
+  } catch {
+    // Blob not found or not accessible
+  }
 
   return {
     title: 'Builder ID — Hacker House Goa 2026',
@@ -39,9 +48,16 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   }
 }
 
-export default async function SharePage({ searchParams }: Props) {
-  const params = await searchParams
-  const imageUrl = params?.v || ''
+export default async function SharePage({ params }: Props) {
+  const { id } = await params
+  let imageUrl = ''
+
+  try {
+    const blob = await head(`frames/${id}.png`)
+    imageUrl = blob.url
+  } catch {
+    // not found
+  }
 
   return (
     <main className="share-page">

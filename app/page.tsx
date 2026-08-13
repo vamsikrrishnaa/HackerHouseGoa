@@ -579,8 +579,8 @@ export default function Page() {
         formData.append('image', blob, 'hh-goa-2026.png')
         const res = await fetch('/api/share', { method: 'POST', body: formData })
         if (res.ok) {
-          const { url: blobUrl } = await res.json()
-          shareUrl = `${window.location.origin}/share?v=${encodeURIComponent(blobUrl)}`
+          const { id } = await res.json()
+          shareUrl = `${window.location.origin}/share/${id}`
         }
       } catch {
         // Blob upload not available (local dev) — that's fine, image was already downloaded
