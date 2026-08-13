@@ -4,21 +4,10 @@ import { NextResponse } from 'next/server'
 export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
-  const token = process.env.BLOB_READ_WRITE_TOKEN
-
-  // Diagnostic: log env state (no secret values exposed)
-  console.log('[share] BLOB_READ_WRITE_TOKEN present:', !!token)
+  // Diagnostic logging — safe (no secrets)
+  console.log('[share] BLOB_STORE_ID present:', !!process.env.BLOB_STORE_ID)
   console.log('[share] NODE_ENV:', process.env.NODE_ENV)
-
-  if (!token) {
-    console.error('[share] BLOB_READ_WRITE_TOKEN is not set in this environment')
-    // Return 503 so the client-side catch opens X without a URL
-    // (the auto-downloaded PNG is still available to attach manually)
-    return NextResponse.json(
-      { error: 'Blob not configured — BLOB_READ_WRITE_TOKEN missing' },
-      { status: 503 }
-    )
-  }
+  console.log('[share] VERCEL:', process.env.VERCEL)
 
   let formData: FormData
   try {
@@ -40,16 +29,21 @@ export async function POST(request: Request) {
     const id = crypto.randomUUID().slice(0, 12).replace(/-/g, '')
     const pathname = `frames/${id}.png`
 
-    const { url } = await put(pathname, file, {
+    // @vercel/blob 2.x uses OIDC automatically on Vercel
+    // No manual token needed — the SDK reads BLOB_STORE_ID + VERCEL_OIDC_TOKEN
+    const blob = await put(pathname, file, {
       access: 'public',
       addRandomSuffix: false,
-      token,
     })
 
-    console.log('[share] Upload success:', url)
-    return NextResponse.json({ url, id })
+    console.log('[share] Upload success:', blob.url)
+    return NextResponse.json({ url: blob.url, id })
   } catch (error) {
-    console.error('[share] Blob put() failed:', error)
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
+    const err = error as Error
+    console.error('[share] Blob put() failed:', err.name, err.message)
+    return NextResponse.json(
+      { error: `Upload failed: ${err.message}` },
+      { status: 500 }
+    )
   }
 }
